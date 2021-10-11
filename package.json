@@ -1,0 +1,30 @@
+{
+  "name": "seed",
+  "version": "1.0.0",
+  "description": "Starting point for hardhat projects",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx hardhat test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/bgantaume/seed.git"
+  },
+  "author": "Benoit Gantaume",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bgantaume/seed/issues"
+  },
+  "homepage": "https://github.com/bgantaume/seed#readme",
+  "devDependencies": {
+    "@eth-optimism/smock": "^1.1.10",
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "chai": "^4.3.4",
+    "ethereum-waffle": "^3.4.0",
+    "ethers": "^5.4.7",
+    "hardhat": "^2.6.5",
+    "install": "^0.13.0",
+    "npm": "^8.0.0"
+  }
+}
