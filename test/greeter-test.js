@@ -1,11 +1,12 @@
-const { expect } = require("chai");
+const chai = require("chai");
+const expect = chai.expect;
 const { ethers } = require("hardhat");
-const { smockit } = require("@eth-optimism/smock");
-const { smoddit } = require("@eth-optimism/smock");
+const { smock } = require("@defi-wonderland/smock");
+
+chai.use(smock.matchers);
 
 describe("Greeter", function () {
 	let greeter;
-
 	beforeEach(async () => {
         const Greeter = await ethers.getContractFactory("Greeter");
         greeter = await Greeter.deploy("Hello, world!");
@@ -26,19 +27,18 @@ describe("Greeter", function () {
   });
 
   it("Should be mockable", async function() {
-    const MyMockContract = await smockit(greeter);
-    MyMockContract.smocked.greet
-                    .will.return.with("Yo, dlrow");
+    const mockFactory = await smock.mock('Greeter');
+    const mock = await mockFactory.deploy("Hello World");
+
+    mock.greet.returns("Yo, dlrow");
 
     const GreeterConsummer = await ethers.getContractFactory("GreeterConsummer");
-    const consummer = await GreeterConsummer.deploy(MyMockContract.address);
+    const consummer = await GreeterConsummer.deploy(mock.address);
     await consummer.deployed();
 
     await consummer.greetForReal();
 
-    expect(MyMockContract.smocked.greet.calls.length)
-                    .to.be.equal(1);
-
+    expect(mock.greet).to.have.been.called;
   });
 
 });
