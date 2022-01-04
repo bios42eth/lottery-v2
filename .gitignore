@@ -1,8 +1,14 @@
 node_modules
 .env
 
-#Hardhat files
 cache
 artifacts
-.vscode/* 
+.vscode/*
 
+.DS_Store
+data
+dist
+
+typechain
+coverage
+coverage.json

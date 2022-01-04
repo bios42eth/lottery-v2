@@ -1,30 +1,45 @@
 {
-  "name": "seed",
+  "name": "Seed",
   "version": "1.0.0",
-  "description": "Starting point for hardhat projects",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "npx hardhat test"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/bgantaume/seed.git"
+    "url": ""
   },
-  "author": "Benoit Gantaume",
+  "author": "Bios42",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/bgantaume/seed/issues"
+    "url": ""
   },
-  "homepage": "https://github.com/bgantaume/seed#readme",
-  "devDependencies": {
-    "@defi-wonderland/smock": "^2.0.7",
+  "homepage": "",
+  "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@openzeppelin/contracts": "^4.3.2",
+    "@typechain/ethers-v5": "^8.0.5",
+    "@typechain/hardhat": "^3.0.0",
+    "@types/chai": "^4.2.22",
+    "@types/mocha": "^9.0.0",
+    "@types/node": "^16.11.11",
+    "@typescript-eslint/eslint-plugin": "^5.5.0",
+    "@typescript-eslint/parser": "^5.5.0",
     "chai": "^4.3.4",
+    "eslint": "^8.4.0",
     "ethereum-waffle": "^3.4.0",
     "ethers": "^5.4.7",
-    "hardhat": "^2.6.5",
+    "hardhat": "^2.8.0",
+    "hardhat-abi-exporter": "^2.3.1",
+    "hardhat-gas-reporter": "^1.0.6",
     "install": "^0.13.0",
-    "npm": "^8.0.0"
+    "npm": "^8.0.0",
+    "solidity-coverage": "^0.7.17",
+    "ts-generator": "^0.1.1",
+    "ts-node": "^10.4.0",
+    "typechain": "^6.0.5",
+    "typescript": "^4.5.2"
   }
 }
