@@ -4,6 +4,8 @@ import '@nomiclabs/hardhat-waffle'
 import 'hardhat-abi-exporter'
 import 'hardhat-gas-reporter'
 import 'solidity-coverage'
+import "@nomiclabs/hardhat-etherscan";
+
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -18,6 +20,11 @@ module.exports = {
         },
       },
     }
+  },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: ""
   },
   typechain: {
     outDir: 'typechain',
