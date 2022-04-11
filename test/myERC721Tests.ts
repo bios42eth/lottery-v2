@@ -9,15 +9,21 @@ import { BigNumber } from "ethers";
 import { equal } from "assert";
 import { parseEther } from "ethers/lib/utils";
 
+
+// https://github.com/davidrazmadzeExtra/Merkle_Tree_Whitelist_NFT/blob/main/merkle_tree.js
+// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/test/utils/cryptography/MerkleProof.test.js
+const { MerkleTree } = require('merkletreejs');
+const keccak256 = require('keccak256');
+
 describe("MyERC721 Contract", async function () {
   let developer: SignerWithAddress;
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
+  let charly: SignerWithAddress;
   let whiteListSigner: SignerWithAddress;
   let tokenAddress : string;
   let zeroAddress : string;
-
   let collection: MyERC721Contract;
   before(async () => {
     const signers = await ethers.getSigners();
@@ -26,6 +32,7 @@ describe("MyERC721 Contract", async function () {
     alice = signers[2];
     bob = signers[3];
     whiteListSigner = signers[4]
+    charly = signers[5];
     zeroAddress="0x0000000000000000000000000000000000000000"
   });
   const DEFAULT_URL = "ipfs://warpzone/";
@@ -53,6 +60,7 @@ describe("MyERC721 Contract", async function () {
     console.log("tokenAddress : ",tokenAddress)
 
     console.log("Finished setup. Ready to test.")
+
   });
 
   describe("Settings", function() {
@@ -148,12 +156,87 @@ describe("MyERC721 Contract", async function () {
       })
     })
 
-    describe('whitelist minting', function() {
+    describe.only('whitelist Merkle Tree minting', function() {
+      let merkleTree : typeof MerkleTree;
+      this.beforeAll(async function() {
+        let whiteList = ["0X5B38DA6A701C568545DCFCB03FCB875F56BEDDC4",
+          "0X5A641E5FB72A2FD9137312E7694D42996D689D99",
+          "0XDCAB482177A592E424D1C8318A464FC922E8DE40",
+          "0X6E21D37E07A6F7E53C7ACE372CEC63D4AE4B6BD0",
+          "0X09BAAB19FC77C19898140DADD30C4685C597620B",
+          "0XCC4C29997177253376528C05D3DF91CF2D69061A",
+          "0xdD870fA1b7C4700F2BD7f44238821C26f7392148",
+          alice.address,
+          bob.address]
+        merkleTree = new MerkleTree(whiteList, keccak256, { hashLeaves: true, sortPairs: true });
+        await collection.connect(owner).setMerkleRoot(merkleTree.getRoot())
+      })
+
+      it('should be closed by default', async function() {
+        let proof = merkleTree.getHexProof(keccak256(alice.address))
+
+          await expect(collection.connect(alice).merkleTreeWLMint(1, proof, {value: await collection.price()})).to
+            .be.revertedWith('Whitelist minting is closed')
+      })
+
+      it('should check that only the owner can open the wlmint', async function() {
+        await expect(collection.connect(alice).flipWhiteListMint()).to.be
+          .revertedWith("Ownable: caller is not the owner")
+      })
+
+      it('should send an event when flipping', async function() {
+        await expect(collection.connect(owner).flipWhiteListMint()).to
+          .emit(collection, "WhitelistMintFlipped")
+          .withArgs(true)
+
+        await expect(collection.connect(owner).flipWhiteListMint()).to
+          .emit(collection, "WhitelistMintFlipped")
+          .withArgs(false)
+      })
+
+      describe('when opened', function() {
+        this.beforeEach(async function() {
+          await collection.connect(owner).flipWhiteListMint()
+          expect(await collection.isWhitelistMintingOpened()).to.eq(true)
+        })
+
+        it('should check signature', async function () {
+          let proof = merkleTree.getHexProof(keccak256(alice.address))
+
+          await expect(collection.connect(alice).merkleTreeWLMint(1, proof, {value: await collection.price()})).to
+            .emit(collection, "Transfer")
+            .withArgs(zeroAddress,alice.address, 1)
+        })
+
+        it('should reject invalid signature', async function () {
+          let proof = merkleTree.getHexProof(keccak256(charly.address))
+
+          await expect(collection.connect(alice).merkleTreeWLMint(1, proof, {value: await collection.price()}))
+            .to.be.revertedWith("Address not approved")
+        })
+
+
+        it('fail if price is too low', async function() {
+          let proof = merkleTree.getHexProof(keccak256(alice.address))
+
+          await expect(collection.connect(alice).merkleTreeWLMint(2, proof, {value: await collection.price()})).to
+            .be.revertedWith('Insufficiant amount sent')
+        })
+
+        it('should only allow owner to update whitelister', async function () {
+          await expect(collection.connect(alice).setMerkleRoot(merkleTree.getRoot()))
+                .to.be.revertedWith("Ownable: caller is not the owner")
+
+        })
+      })
+    })
+
+    describe('whitelist ECDSA minting', function() {
       it('should be closed by default', async function() {
           let encodedAddress = ethers.utils.defaultAbiCoder.encode(["address"],[alice.address])
           let signedMessage = await whiteListSigner.signMessage(ethers.utils.arrayify(encodedAddress))
 
-          await expect(collection.connect(alice).wlMint(1, signedMessage, {value: await collection.price()})).to
+          await expect(collection.connect(alice).ecdsaWLMint(1, signedMessage, {value: await collection.price()})).to
             .be.revertedWith('Whitelist minting is closed')
       })
 
@@ -182,7 +265,7 @@ describe("MyERC721 Contract", async function () {
           let encodedAddress = ethers.utils.defaultAbiCoder.encode(["address"],[alice.address])
           let signedMessage = await whiteListSigner.signMessage(ethers.utils.arrayify(encodedAddress))
 
-          await expect(collection.connect(alice).wlMint(1, signedMessage, {value: await collection.price()})).to
+          await expect(collection.connect(alice).ecdsaWLMint(1, signedMessage, {value: await collection.price()})).to
             .emit(collection, "Transfer")
             .withArgs(zeroAddress,alice.address, 1)
         })
@@ -191,14 +274,14 @@ describe("MyERC721 Contract", async function () {
           let encodedAddress = ethers.utils.defaultAbiCoder.encode(["address"],[alice.address])
           let signedMessage = await whiteListSigner.signMessage(ethers.utils.arrayify(encodedAddress))
 
-          await expect(collection.connect(alice).wlMint(2, signedMessage, {value: await collection.price()})).to
+          await expect(collection.connect(alice).ecdsaWLMint(2, signedMessage, {value: await collection.price()})).to
             .be.revertedWith('Insufficiant amount sent')
         })
 
         it('should reject invalid signature', async function () {
           let encodedAddress = ethers.utils.defaultAbiCoder.encode(["address"],[bob.address])
           let signedMessage = await whiteListSigner.signMessage(ethers.utils.arrayify(encodedAddress))
-          await expect(collection.connect(alice).wlMint(1, signedMessage, {value: await collection.price()})).to.be.revertedWith("Address not approved")
+          await expect(collection.connect(alice).ecdsaWLMint(1, signedMessage, {value: await collection.price()})).to.be.revertedWith("Address not approved")
         })
       })
 
@@ -208,10 +291,10 @@ describe("MyERC721 Contract", async function () {
         await collection.connect(owner).flipWhiteListMint()
         let encodedAddress = ethers.utils.defaultAbiCoder.encode(["address"],[alice.address])
         let signedMessage = await whiteListSigner.signMessage(ethers.utils.arrayify(encodedAddress))
-        await expect(collection.connect(alice).wlMint(1, signedMessage, {value:await collection.price()})).to.be.revertedWith("Address not approved")
+        await expect(collection.connect(alice).ecdsaWLMint(1, signedMessage, {value:await collection.price()})).to.be.revertedWith("Address not approved")
 
         signedMessage = await bob.signMessage(ethers.utils.arrayify(encodedAddress))
-        await expect(collection.connect(alice).wlMint(1, signedMessage, {value: await collection.price()})).to
+        await expect(collection.connect(alice).ecdsaWLMint(1, signedMessage, {value: await collection.price()})).to
           .emit(collection, "Transfer")
           .withArgs(zeroAddress,alice.address, 1)
       })
@@ -255,7 +338,7 @@ describe("MyERC721 Contract", async function () {
     })
   })
 
-  describe("Money management", function() {
+  describe("Money management with PaymentSplitter", function() {
     it('should allow to retrieve funds', async function () {
       await collection.connect(owner).flipPublicMint()
       await collection.connect(alice).mint(10, {value: (await collection.price()).mul(10)})
