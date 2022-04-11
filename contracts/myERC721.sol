@@ -44,7 +44,30 @@ contract MyERC721 is ERC721Enumerable, PaymentSplitter, Ownable {
   }
 
   //
-  // Public Access
+  // Collection settings
+  //
+
+  function setBaseURI(string calldata _newBaseURI) external onlyOwner {
+    baseURI = _newBaseURI;
+    emit BaseURIUpdated(_newBaseURI);
+  }
+
+  function _baseURI() internal view override returns (string memory) {
+    return baseURI;
+  }
+
+  // Helpers
+  function tokensOfOwner(address owner) external view returns (uint256[] memory) {
+    uint256 tokenCount = balanceOf(owner);
+    uint256[] memory result = new uint256[](tokenCount);
+    for (uint256 index; index < tokenCount; index++) {
+        result[index] = tokenOfOwnerByIndex(owner, index);
+    }
+    return result;
+  }
+
+  //
+  // Mint
   //
 
   function price() public view returns (uint256) {
@@ -59,55 +82,15 @@ contract MyERC721 is ERC721Enumerable, PaymentSplitter, Ownable {
     _batchMint(msg.sender, count);
   }
 
-  function wlMint(uint16 count, bytes memory signedMessage) external payable {
-    require(msg.value >= count * price(),"Insufficiant amount sent");
-    require(isWhitelistMintingOpened, "Whitelist minting is closed");
-    require(getSigner(signedMessage) == whiteListSigner, "Address not approved");
-
-    _batchMint(msg.sender, count);
-  }
-
-  function tokensOfOwner(address owner) external view returns (uint256[] memory) {
-    uint256 tokenCount = balanceOf(owner);
-    uint256[] memory result = new uint256[](tokenCount);
-    for (uint256 index; index < tokenCount; index++) {
-        result[index] = tokenOfOwnerByIndex(owner, index);
-    }
-    return result;
-  }
-
-  //
-  // Owner Access
-  //
-
-  function flipWhiteListMint() external onlyOwner{
-    isWhitelistMintingOpened = !isWhitelistMintingOpened;
-    emit WhitelistMintFlipped(isWhitelistMintingOpened);
+  function updateBatchMintLimit(uint16 newLimit) external onlyOwner {
+    batchMintLimit = newLimit;
+    emit BatchMintLimitUpdated(newLimit);
   }
 
   function flipPublicMint() external onlyOwner {
     isPublicMintingOpened = !isPublicMintingOpened;
     emit PublicMintFlipped(isPublicMintingOpened);
   }
-
-  function updateWhitelistSigner(address newAddress) external onlyOwner {
-    whiteListSigner = newAddress;
-    emit WhiteListSignerUpdated(newAddress);
-  }
-
-  function updateBatchMintLimit(uint16 newLimit) external onlyOwner {
-    batchMintLimit = newLimit;
-    emit BatchMintLimitUpdated(newLimit);
-  }
-
-  function setBaseURI(string calldata _newBaseURI) external onlyOwner {
-    baseURI = _newBaseURI;
-    emit BaseURIUpdated(_newBaseURI);
-  }
-
-  //
-  // Internal functions
-  //
 
   function _batchMint(address to,uint16 count) private {
     require(totalSupply() + count <= MAXCOLLECTIONSIZE, "Collection is sold out");
@@ -118,13 +101,32 @@ contract MyERC721 is ERC721Enumerable, PaymentSplitter, Ownable {
     }
   }
 
+  //
+  // Whitelist management
+  //
+
+  function flipWhiteListMint() external onlyOwner{
+    isWhitelistMintingOpened = !isWhitelistMintingOpened;
+    emit WhitelistMintFlipped(isWhitelistMintingOpened);
+  }
+
+  // ECDSA Whitelist
+  function wlMint(uint16 count, bytes memory signedMessage) external payable {
+    require(msg.value >= count * price(),"Insufficiant amount sent");
+    require(isWhitelistMintingOpened, "Whitelist minting is closed");
+    require(getSigner(signedMessage) == whiteListSigner, "Address not approved");
+
+    _batchMint(msg.sender, count);
+  }
+
+  function updateWhitelistSigner(address newAddress) external onlyOwner {
+    whiteListSigner = newAddress;
+    emit WhiteListSignerUpdated(newAddress);
+  }
+
   function getSigner(bytes memory signedMessage) view private returns (address signer) {
     bytes memory bMessage = abi.encode(msg.sender);
     bytes32 hash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", bMessage));
     signer = ECDSA.recover(hash, signedMessage);
-  }
-
-  function _baseURI() internal view override returns (string memory) {
-    return baseURI;
   }
 }
