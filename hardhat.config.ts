@@ -12,12 +12,16 @@ import "@nomiclabs/hardhat-etherscan";
  */
 module.exports = {
   solidity: {
-    version: "0.8.11",
+    version: "0.8.7",
     settings: {
       outputSelection: {
         "*": {
             "*": ["storageLayout"]
         },
+      },
+      optimizer: {
+        enabled: true,
+        runs: 999999,
       },
     }
   },
@@ -66,10 +70,19 @@ module.exports = {
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     rinkeby: {
-      url: process.env.RINKEBY_URL || "https://rinkeby.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
+      url: process.env.RINKEBY_URL || "https://rinkeby.infura.io/v3/d22a3432f6a14141af2585fb1ed35fcc",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
-
+    mainnet: {
+      chainId: 1,
+      url: process.env.MAINNET_URL|| "https://mainnet.infura.io/v3/d22a3432f6a14141af2585fb1ed35fcc",
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
+    },
+    mumbai: {
+      url:"https://rpc-mumbai.maticvigil.com",
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
+    },
   }
 };

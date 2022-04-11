@@ -5,16 +5,14 @@ import { expect } from "chai";
 const { deployContract, loadFixture } = waffle;
 const {parseEther} = ethers.utils;
 
-import myERC20 from "../artifacts/contracts/myERC20.sol/myERC20.json";
+import MyERC20 from "../artifacts/contracts/MyERC20.sol/MyERC20.json";
 import { MyERC20 as myToken } from "../typechain/MyERC20";
 
-describe("myERC20 v2 E2E", async function () {
+describe("MyERC20 Contract", async function () {
   let developer: string;
   let developerAcc: SignerWithAddress;
-  let user1: string;
-  let user1Acc: SignerWithAddress;
-  let user2: string;
-  let user2Acc: SignerWithAddress;
+  let alice: SignerWithAddress;
+  let bob: SignerWithAddress;
   let tokenAddress : string;
 
   let token: myToken ;
@@ -22,10 +20,8 @@ describe("myERC20 v2 E2E", async function () {
     const signers = await ethers.getSigners();
     developerAcc = signers[0];
     developer = developerAcc.address;
-    user1Acc = signers[1];
-    user1 = user1Acc.address;
-    user2Acc = signers[2];
-    user2 = user2Acc.address;
+    alice = signers[1];
+    bob = signers[2];
   });
 
   async function fixture() {} // For now we just use this to snapshot and revert the state of the blockchain
@@ -37,7 +33,7 @@ describe("myERC20 v2 E2E", async function () {
   this.beforeAll(async () => {
     console.log('Starting beforeAll...');
 
-    const Token = await ethers.getContractFactory('myERC20');
+    const Token = await ethers.getContractFactory('MyERC20');
     console.log('Deploying Token...');
     token = await Token.deploy() as myToken;
     await token.deployed();
