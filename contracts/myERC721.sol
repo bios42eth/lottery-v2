@@ -3,6 +3,7 @@
 pragma solidity ^0.8.7;
 
 import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol';
+import '@openzeppelin/contracts/token/common/ERC2981.sol';
 import '@openzeppelin/contracts/finance/PaymentSplitter.sol';
 
 import '@openzeppelin/contracts/access/Ownable.sol';
@@ -11,24 +12,32 @@ import '@openzeppelin/contracts/utils/Address.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-contract MyERC721 is ERC721Enumerable, PaymentSplitter, Ownable {
+contract MyERC721 is ERC721Enumerable, ERC2981, PaymentSplitter, Ownable {
 
   bool public isWhitelistMintingOpened;
   bool public isPublicMintingOpened;
 
   uint16 public MAXCOLLECTIONSIZE = 10000;
   uint16 public batchMintLimit = 20;
+  uint16 public WLLIMIT = 1000;
 
   address public whiteListSigner;
   bytes32 public merkleRoot;
 
   string public baseURI;
+  address public proxyRegistryAddress;
+  // Rinkeby: 0xf57b2c51ded3a29e6891aba85459d600256cf317
+  // Mainnet: 0xa5409ec958c83c3f309868babaca7c86dcb077c1
 
   event WhitelistMintFlipped(bool wlMint);
   event PublicMintFlipped(bool publicMint);
   event WhiteListSignerUpdated(address signer);
   event BaseURIUpdated(string newURI);
   event BatchMintLimitUpdated(uint16 newLimit);
+  event CollectionSizeUpdated(uint16 newLimit);
+  event WhiteListLimitUpdated(uint16 newLimit);
+  event Withdrawn(uint256 amount);
+  event DefaultRoyaltySet(address receiver, uint96 feeNumerator);
 
   constructor(
     address _whiteListSigner,
@@ -44,6 +53,7 @@ contract MyERC721 is ERC721Enumerable, PaymentSplitter, Ownable {
       whiteListSigner = _whiteListSigner;
       baseURI = _uri;
       transferOwnership(owner);
+      setDefaultRoyalty(owner, 1000); // 10% fees
   }
 
   //
@@ -59,17 +69,28 @@ contract MyERC721 is ERC721Enumerable, PaymentSplitter, Ownable {
     return baseURI;
   }
 
+  // 10% => feeNumerator = 1000
+  function setDefaultRoyalty(address receiver, uint96 feeNumerator) public onlyOwner{
+    _setDefaultRoyalty(receiver, feeNumerator);
+    emit DefaultRoyaltySet(receiver, feeNumerator);
+  }
 
   // OpenSea specifics
-  // function isApprovedForAll(address _owner, address operator) public view override returns (bool) {
-  //       MarketplaceProxyRegistry proxyRegistry = MarketplaceProxyRegistry(proxyRegistryAddress);
-  //       if (address(proxyRegistry.proxies(_owner)) == operator || addressInfo[operator].projectProxy) return true;
-  //       return super.isApprovedForAll(_owner, operator);
-  //   }
+  function isApprovedForAll(address _owner, address operator) public view override returns (bool) {
+    MarketplaceProxyRegistry proxyRegistry = MarketplaceProxyRegistry(proxyRegistryAddress);
+    if (address(proxyRegistry.proxies(_owner)) == operator) return true;
+    return super.isApprovedForAll(_owner, operator);
+  }
 
-  // function setProxyRegistry(address _proxyRegistryAddress) public onlyOwner {
-  //   proxyRegistryAddress = _proxyRegistryAddress;
-  //   }
+  function setProxyRegistry(address _proxyRegistryAddress) public onlyOwner {
+    proxyRegistryAddress = _proxyRegistryAddress;
+  }
+
+  // Contract metadata URI - Support for OpenSea: https://docs.opensea.io/docs/contract-level-metadata
+  function contractURI() public view returns (string memory) {
+      return string(abi.encodePacked(_baseURI(), "contract.json"));
+  }
+
   // Helpers
   function tokensOfOwner(address owner) external view returns (uint256[] memory) {
     uint256 tokenCount = balanceOf(owner);
@@ -84,13 +105,17 @@ contract MyERC721 is ERC721Enumerable, PaymentSplitter, Ownable {
   // Mint
   //
 
-  function price() public view returns (uint256) {
-    uint256 slice = totalSupply() / 100;
-    return (30 + 2 * slice) * 10**15;
+  function publicPrice() public pure returns (uint256) {
+    return 0.15 ether;
+  }
+
+  function setMaxCollectionSize(uint16 _limit) external onlyOwner {
+    MAXCOLLECTIONSIZE = _limit;
+    emit CollectionSizeUpdated(_limit);
   }
 
   function mint(uint16 count) external payable {
-    require(msg.value >= count * price(),"Insufficiant amount sent");
+    require(msg.value >= count * publicPrice(),"Insufficiant amount sent");
     require(isPublicMintingOpened, "Public minting is closed");
 
     _batchMint(msg.sender, count);
@@ -115,6 +140,9 @@ contract MyERC721 is ERC721Enumerable, PaymentSplitter, Ownable {
     }
   }
 
+  function airdrop(address to, uint16 count) external onlyOwner {
+    _batchMint(to, count);
+  }
   //
   // Whitelist management
   //
@@ -124,13 +152,24 @@ contract MyERC721 is ERC721Enumerable, PaymentSplitter, Ownable {
     emit WhitelistMintFlipped(isWhitelistMintingOpened);
   }
 
+  function presalePrice() public pure returns (uint256){
+    return 0.10 ether;
+  }
+
+  function setWLLimit(uint16 _limit) external onlyOwner {
+    WLLIMIT = _limit;
+    emit WhiteListLimitUpdated(_limit);
+  }
+
   // Merkle tree whitelist
 
   function merkleTreeWLMint(uint16 _count, bytes32[] memory _proof) external payable {
-    require(msg.value >= _count * price(),"Insufficiant amount sent");
+    require(msg.value >= _count * presalePrice(),"Insufficiant amount sent");
     require(isWhitelistMintingOpened, "Whitelist minting is closed");
+    require(totalSupply() + _count <= WLLIMIT, "Presale is sold out");
+
     bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
-    require(MerkleProof.verify(_proof, merkleRoot, leaf), "Address not approved");
+    require(MerkleProof.verify(_proof, merkleRoot, leaf), "Address not whitelisted");
 
     _batchMint(msg.sender, _count);
   }
@@ -141,9 +180,10 @@ contract MyERC721 is ERC721Enumerable, PaymentSplitter, Ownable {
 
   // ECDSA Whitelist
   function ecdsaWLMint(uint16 count, bytes memory signedMessage) external payable {
-    require(msg.value >= count * price(),"Insufficiant amount sent");
+    require(msg.value >= count * presalePrice(),"Insufficiant amount sent");
     require(isWhitelistMintingOpened, "Whitelist minting is closed");
-    require(getSigner(signedMessage) == whiteListSigner, "Address not approved");
+    require(totalSupply() + count <= WLLIMIT, "Presale is sold out");
+    require(getSigner(signedMessage) == whiteListSigner, "Address not whitelisted");
 
     _batchMint(msg.sender, count);
   }
@@ -158,10 +198,22 @@ contract MyERC721 is ERC721Enumerable, PaymentSplitter, Ownable {
     bytes32 hash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", bMessage));
     signer = ECDSA.recover(hash, signedMessage);
   }
+
+  // Fund management
+  function withdraw() external onlyOwner{
+    uint256 amount = address(this).balance;
+    Address.sendValue(payable(owner()), amount);
+    emit Withdrawn(amount);
+  }
+
+  function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721Enumerable, ERC2981) returns (bool) {
+    return super.supportsInterface(interfaceId);
+  }
+
 }
 
+contract OwnableDelegateProxy {}
 
-// contract OwnableDelegateProxy { }
-// contract MarketplaceProxyRegistry {
-//     mapping(address => OwnableDelegateProxy) public proxies;
-// }
+contract MarketplaceProxyRegistry {
+    mapping(address => OwnableDelegateProxy) public proxies;
+}
