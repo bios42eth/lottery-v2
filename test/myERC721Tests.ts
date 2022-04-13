@@ -425,4 +425,16 @@ describe("MyERC721 Contract", async function () {
       expect(await (await collection.tokensOfOwner(bob.address)).toString()).to.eq([4,5,6].toString())
     })
   })
+  describe("Transfer", function() {
+    it('should allow to transfer from alice to bob', async function() {
+      await collection.connect(owner).flipPublicMint()
+      await expect(collection.connect(alice).mint(3, {value: (await collection.publicPrice()).mul(3)})).to
+        .emit(collection, "Transfer")
+        .withArgs(zeroAddress,alice.address, 1)
+
+      expect(await collection.ownerOf(1)).to.eq(alice.address)
+      await collection.connect(alice).transferFrom(alice.address, bob.address, 1)
+      expect(await collection.ownerOf(1)).to.eq(bob.address)
+    })
+  })
 });
