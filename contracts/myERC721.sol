@@ -52,8 +52,8 @@ contract MyERC721 is ERC721Enumerable, ERC2981, PaymentSplitter, Ownable {
       require(_whiteListSigner != address(0), "Please provide a valid whitelist signer");
       whiteListSigner = _whiteListSigner;
       baseURI = _uri;
-      transferOwnership(owner);
       setDefaultRoyalty(owner, 1000); // 10% fees
+      transferOwnership(owner);
   }
 
   //
