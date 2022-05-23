@@ -167,14 +167,17 @@ contract MyERC721 is ERC721A, ERC2981, PaymentSplitter, Ownable {
   }
 
   // Merkle tree whitelist
+  function isWhitelisted(address _a, bytes32[] memory _proof) public view returns (bool) {
+    bytes32 leaf = keccak256(abi.encodePacked(_a));
+    return MerkleProof.verify(_proof, merkleRoot, leaf);
+  }
 
   function merkleTreeWLMint(uint16 _count, bytes32[] memory _proof) external payable {
     require(msg.value >= _count * presalePrice(),"Insufficiant amount sent");
     require(isWhitelistMintingOpened, "Whitelist minting is closed");
     require(totalSupply() + _count <= WLLIMIT, "Presale is sold out");
 
-    bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
-    require(MerkleProof.verify(_proof, merkleRoot, leaf), "Address not whitelisted");
+    require(isWhitelisted(msg.sender, _proof), "Address not whitelisted");
 
     _batchMint(msg.sender, _count);
   }
