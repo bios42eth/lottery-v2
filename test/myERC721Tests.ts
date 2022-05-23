@@ -399,32 +399,32 @@ describe("MyERC721 Contract", async function () {
       expect(await collection.supportsInterface("0x5b5e139f")).to.eq(true)
     })
     it('should support ERC721Enumerable', async function() {
-      expect(await collection.supportsInterface("0x780e9d63")).to.eq(true)
+      expect(await collection.supportsInterface("0x780e9d63")).to.eq(false)
     })
     it('should not support random interface', async function() {
       expect(await collection.supportsInterface("0x42000000")).to.eq(false)
     })
   })
 
-  describe("Enumerable", function() {
-    this.beforeEach(async function() {
-      await collection.connect(owner).flipPublicMint()
-      await expect(collection.connect(alice).mint(3, {value: (await collection.publicPrice()).mul(3)})).to
-        .emit(collection, "Transfer")
-        .withArgs(zeroAddress,alice.address, 1)
-      await expect(collection.connect(bob).mint(3, {value: (await collection.publicPrice()).mul(3)})).to
-        .emit(collection, "Transfer")
-        .withArgs(zeroAddress,bob.address, 4)
-    })
-    it('should be enumerable', async function() {
-      expect(await collection.tokenOfOwnerByIndex(bob.address, 0)).to.eq(4)
-    })
+  // describe("Enumerable", function() {
+  //   this.beforeEach(async function() {
+  //     await collection.connect(owner).flipPublicMint()
+  //     await expect(collection.connect(alice).mint(3, {value: (await collection.publicPrice()).mul(3)})).to
+  //       .emit(collection, "Transfer")
+  //       .withArgs(zeroAddress,alice.address, 1)
+  //     await expect(collection.connect(bob).mint(3, {value: (await collection.publicPrice()).mul(3)})).to
+  //       .emit(collection, "Transfer")
+  //       .withArgs(zeroAddress,bob.address, 4)
+  //   })
+  //   it('should be enumerable', async function() {
+  //     expect(await collection.tokenOfOwnerByIndex(bob.address, 0)).to.eq(4)
+  //   })
 
-    it('should return all tokens for a user', async function() {
-      expect(await collection.tokensOfOwner(developer.address)).to.deep.equal([])
-      expect(await (await collection.tokensOfOwner(bob.address)).toString()).to.eq([4,5,6].toString())
-    })
-  })
+  //   it('should return all tokens for a user', async function() {
+  //     expect(await collection.tokensOfOwner(developer.address)).to.deep.equal([])
+  //     expect(await (await collection.tokensOfOwner(bob.address)).toString()).to.eq([4,5,6].toString())
+  //   })
+  // })
   describe("Transfer", function() {
     it('should allow to transfer from alice to bob', async function() {
       await collection.connect(owner).flipPublicMint()

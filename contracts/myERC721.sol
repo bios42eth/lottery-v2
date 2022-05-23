@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.7;
 
-import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol';
+import 'erc721a/contracts/ERC721A.sol';
 import '@openzeppelin/contracts/token/common/ERC2981.sol';
 import '@openzeppelin/contracts/finance/PaymentSplitter.sol';
 
@@ -12,7 +12,7 @@ import '@openzeppelin/contracts/utils/Address.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-contract MyERC721 is ERC721Enumerable, ERC2981, PaymentSplitter, Ownable {
+contract MyERC721 is ERC721A, ERC2981, PaymentSplitter, Ownable {
 
   bool public isWhitelistMintingOpened;
   bool public isPublicMintingOpened;
@@ -45,7 +45,7 @@ contract MyERC721 is ERC721Enumerable, ERC2981, PaymentSplitter, Ownable {
     address[] memory payees,
     uint256[] memory shares,
     string memory _uri)
-    ERC721("My ERC721","MYERC721")
+    ERC721A("My ERC721","MYERC721")
     PaymentSplitter(payees, shares)
     {
       require(owner != address(0), "Please provide a valid owner");
@@ -54,6 +54,10 @@ contract MyERC721 is ERC721Enumerable, ERC2981, PaymentSplitter, Ownable {
       baseURI = _uri;
       setDefaultRoyalty(owner, 1000); // 10% fees
       transferOwnership(owner);
+  }
+
+  function _startTokenId() internal view virtual override returns (uint256) {
+      return 1;
   }
 
   //
@@ -92,14 +96,14 @@ contract MyERC721 is ERC721Enumerable, ERC2981, PaymentSplitter, Ownable {
   }
 
   // Helpers
-  function tokensOfOwner(address owner) external view returns (uint256[] memory) {
-    uint256 tokenCount = balanceOf(owner);
-    uint256[] memory result = new uint256[](tokenCount);
-    for (uint256 index; index < tokenCount; index++) {
-        result[index] = tokenOfOwnerByIndex(owner, index);
-    }
-    return result;
-  }
+  // function tokensOfOwner(address owner) external view returns (uint256[] memory) {
+  //   uint256 tokenCount = balanceOf(owner);
+  //   uint256[] memory result = new uint256[](tokenCount);
+  //   for (uint256 index; index < tokenCount; index++) {
+  //       result[index] = tokenOfOwnerByIndex(owner, index);
+  //   }
+  //   return result;
+  // }
 
   //
   // Mint
@@ -131,13 +135,14 @@ contract MyERC721 is ERC721Enumerable, ERC2981, PaymentSplitter, Ownable {
     emit PublicMintFlipped(isPublicMintingOpened);
   }
 
-  function _batchMint(address to,uint16 count) private {
+  function _batchMint(address to, uint16 count) private {
     require(totalSupply() + count <= MAXCOLLECTIONSIZE, "Collection is sold out");
     require(count <= batchMintLimit, "Limit per transaction exeeded");
 
-    for(uint i; i<count; i++) {
-      _mint(to, totalSupply()+1);
-    }
+    _safeMint(to, count);
+    // for(uint i; i<count; i++) {
+    //   _mint(to, totalSupply()+1);
+    // }
   }
 
   function airdrop(address to, uint16 count) external onlyOwner {
@@ -206,7 +211,7 @@ contract MyERC721 is ERC721Enumerable, ERC2981, PaymentSplitter, Ownable {
     emit Withdrawn(amount);
   }
 
-  function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721Enumerable, ERC2981) returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721A, ERC2981) returns (bool) {
     return super.supportsInterface(interfaceId);
   }
 
