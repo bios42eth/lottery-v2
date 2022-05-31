@@ -29,6 +29,7 @@
     "@typescript-eslint/eslint-plugin": "^5.5.0",
     "@typescript-eslint/parser": "^5.5.0",
     "chai": "^4.3.4",
+    "dotenv": "^16.0.1",
     "erc721a": "^3.3.0",
     "eslint": "^8.4.0",
     "ethereum-waffle": "^3.4.0",
