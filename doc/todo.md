@@ -25,6 +25,7 @@ Ticket sales for each draw close 30 minutes earlier at 20:30 UTC
     Match 4 10%
     Match 3 15%
     Match 2 35%
+  - clear tickets
 
 - Create a lottery
   -  pay 1BNB to the token team (how do we know their wallet ?)
@@ -35,3 +36,7 @@ Ticket sales for each draw close 30 minutes earlier at 20:30 UTC
 - Expand to multiple lotteries
 - Implement ticket price peg
 - Integrate chainlink generator
+- deploy & test on testnet
+
+# Open questions
+- Can a same wallet purchase multiple tickets ?

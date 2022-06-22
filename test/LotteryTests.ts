@@ -5,17 +5,16 @@ import { expect } from "chai";
 const { deployContract, loadFixture } = waffle;
 const {parseEther} = ethers.utils;
 
-import MyERC20 from "../artifacts/contracts/MyERC20.sol/MyERC20.json";
-import { MyERC20 as myToken } from "../typechain/MyERC20";
+import { Lottery } from "../typechain/Lottery";
 
-describe("MyERC20 Contract", async function () {
+describe("Lottery Contract", async function () {
   let developer: string;
   let developerAcc: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
   let tokenAddress : string;
 
-  let token: myToken ;
+  let lottery: Lottery ;
   before(async () => {
     const signers = await ethers.getSigners();
     developerAcc = signers[0];
@@ -33,23 +32,15 @@ describe("MyERC20 Contract", async function () {
   this.beforeAll(async () => {
     console.log('Starting beforeAll...');
 
-    const Token = await ethers.getContractFactory('MyERC20');
+    const Contract = await ethers.getContractFactory('Lottery');
     console.log('Deploying Token...');
-    token = await Token.deploy() as myToken;
-    await token.deployed();
-    tokenAddress = token.address
-    console.log("tokenAddress : ",tokenAddress)
-
-
+    lottery = await Contract.deploy() as Lottery;
+    await lottery.deployed();
+    tokenAddress = lottery.address
     console.log("Finished setup. Ready to test.")
   });
 
-  describe("Settings", function() {
-
-    it('should have the right name', async function() {
-      expect(await token.name()).to.eq("Bios42")
-      expect(await token.symbol()).to.eq("B42")
-    })
-
+  describe("Bet", function() {
+    it('shouldwork fine')
   })
 });
