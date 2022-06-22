@@ -1,10 +1,13 @@
 Task: Write smart contracts for the following problem statement
+
 A lottery is supposed to be held and following are the terms and conditions to be
 followed throughout the process.
+
 Division of Prize Among Winners: The Prize payout shall be determined on a pari-mutuel
 basis.
 To play Lottery, the player should fill in the interactive play slip on the website.
 Choose six main numbers ranging from 1 to 59
+
 Each Lottery has a total of 5 prize tiers.
 Prizes can be won by matching two or more numbers
 Random winning number generator using Chainlink oracle is to be used.
